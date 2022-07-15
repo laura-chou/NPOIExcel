@@ -9,7 +9,10 @@ const router = createRouter({
       name: 'home',
       component: HomeView
     }
-  ]
+  ],
+  created () {
+    console.group('created 创建完毕状态===============》')
+  }
 })
 
 export default router

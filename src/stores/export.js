@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
-
 export const useExportStore = defineStore({
   id: 'export',
   state: () => ({
+    tab: 'export',
     excelTitles: [],
     fileName: '',
     fontFamily: '',
@@ -13,9 +13,12 @@ export const useExportStore = defineStore({
     checkedAll: true
   }),
   getters: {
-    // columnNameArr: (state) => state.columnNameArr
+    copyData: (state) => state.excelTitles
   },
   actions: {
+    changeTab (value) {
+      this.tab = value
+    },
     addExcelTitle (value) {
       this.excelTitles.push(value)
     },
@@ -23,10 +26,12 @@ export const useExportStore = defineStore({
       this.excelTitles[index] = {
         excelTitle: this.excelTitles[index].editExcelTitle,
         columnName: this.excelTitles[index].editColumnName,
+        columnType: this.excelTitles[index].editColumnType,
         edit: false,
         checked: this.excelTitles[index].checked,
         editExcelTitle: this.excelTitles[index].editExcelTitle,
-        editColumnName: this.excelTitles[index].editColumnName
+        editColumnName: this.excelTitles[index].editColumnName,
+        editColumnType: this.excelTitles[index].editColumnType
       }
     },
     editExcelTitle (index) {
@@ -39,10 +44,12 @@ export const useExportStore = defineStore({
       this.excelTitles[index] = {
         excelTitle: this.excelTitles[index].excelTitle,
         columnName: this.excelTitles[index].columnName,
+        columnType: this.excelTitles[index].columnType,
         edit: false,
         checked: this.excelTitles[index].checked,
         editExcelTitle: this.excelTitles[index].excelTitle,
-        editColumnName: this.excelTitles[index].columnName
+        editColumnName: this.excelTitles[index].columnName,
+        editColumnType: this.excelTitles[index].columnType
       }
     },
     checkAll () {
@@ -62,16 +69,6 @@ export const useExportStore = defineStore({
       } else {
         this.checkedAll = false
       }
-    },
-    clear () {
-      this.excelTitles.length = 0
-      this.fileName = ''
-      this.fontFamily = ''
-      this.fontSize = ''
-      this.sheetName = ''
-      this.fileExtension = ''
-      this.exportCode = ''
-      this.checkedAll = true
     }
   },
   persist: {

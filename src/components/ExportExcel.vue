@@ -1,12 +1,16 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useImportStore } from '../stores/import'
 import { useExportStore } from '../stores/export'
+
+const importStore = useImportStore()
 const store = useExportStore()
 const { excelTitles, exportCode, checkedAll } = storeToRefs(store)
 
 const excelTitle = ref('')
 const sqlColumnName = ref('')
+const sqlColumnType = ref('')
 const isSubmit = ref(false)
 
 const addExcelTitle = () => {
@@ -14,17 +18,22 @@ const addExcelTitle = () => {
     alert('Please input excel title.')
   } else if (sqlColumnName.value === '') {
     alert('Please input sql column name.')
+  } else if (sqlColumnType.value === '') {
+    alert('Please select type.')
   } else {
     store.addExcelTitle({
       excelTitle: excelTitle.value,
       columnName: sqlColumnName.value,
+      columnType: sqlColumnType.value,
       edit: false,
       editExcelTitle: excelTitle.value,
       editColumnName: sqlColumnName.value,
+      editColumnType: sqlColumnType.value,
       checked: true
     })
     excelTitle.value = ''
     sqlColumnName.value = ''
+    sqlColumnType.value = ''
     if (isSubmit.value) {
       document.getElementsByClassName('field')[0].style.display = 'none'
       document.getElementsByClassName('title')[0].style.borderBottom = 'none'
@@ -37,8 +46,10 @@ const deleteExcelTitle = (val) => {
   }
 }
 const clear = () => {
-  if (confirm('Make sure you want to clear？')) {
-    store.clear()
+  if (confirm('It will clear import and export data.\nMake sure you want to clear？')) {
+    store.$reset()
+    importStore.$reset()
+    location.reload()
   }
 }
 const submit = () => {
@@ -62,9 +73,7 @@ const submit = () => {
     })
   if (validate) {
     const Extension = ((store.fileExtension === 'xlsx') ? 'X' : 'H')
-    let code = 'using NPOI.SS.UserModel;\n' +
-              'using NPOI.' + Extension + 'SSF.UserModel;\n\n' +
-              'public void ExportExcel(DataTable dt)\n{\n' +
+    let code = 'public void ExportExcel(DataTable dt)\n{\n' +
               '    MemoryStream MS = new MemoryStream();\n\n' +
               '    NPOI.SS.UserModel.IWorkbook book = BuildWorkbook(dt);\n\n' +
               '    string fileName = string.Format("{0:HHmmss}", DateTime.Now) + "' + store.fileName + '";\n\n' +
@@ -72,7 +81,7 @@ const submit = () => {
               '    httpResponse.Clear();\n' +
               '    httpResponse.Buffer = true;\n' +
               '    httpResponse.Charset = Encoding.UTF8.BodyName;\n' +
-              '    httpResponse.AppendHeader("Content-Disposition", "attachment;filename=" + fileName + ".xls");\n' +
+              '    httpResponse.AppendHeader("Content-Disposition", "attachment;filename=" + fileName + ".' + store.fileExtension + '");\n' +
               '    httpResponse.ContentEncoding = Encoding.UTF8;\n' +
               '    httpResponse.ContentType = "application/vnd.ms-excel; charset=UTF-8";\n' +
               '    book.Write(httpResponse.OutputStream);\n' +
@@ -129,12 +138,12 @@ const submit = () => {
             '           // method 3 (16 is your height)\n' +
             '           sheet.DefaultRowHeight = 16 * 20;\n\n' +
             '           for (int j = 0; j < SqlDataArr.Length; j++)\n           {\n' +
-            '              CreateICell(row1, CellStyle, j, "", dtData.Rows[i][SqlDataArr[j]].ToString());\n           }\n        }\n    }\n' +
+            '              CreateICell(row1, CellStyle, j, dtData.Rows[i][SqlDataArr[j]].ToString());\n           }\n        }\n    }\n' +
             '    else\n    {\n' +
             '       ISheet sheet = book.CreateSheet("' + store.sheetName + '");\n' +
             '       IRow drow0 = sheet.CreateRow(0);\n' +
             '       ICell cell0_0 = drow0.CreateCell(0, CellType.String);\n' +
-            '       cell0_0.SetCellValue("");\n    }\n    return book;\n}\n' +
+            '       cell0_0.SetCellValue("");\n    }\n\n    return book;\n}\n' +
             'public void CreateICell (IRow row, ICellStyle CellStyle, int DataColumn, string ValueStr)\n{\n' +
             '    ICell cell0 = row.CreateCell((DataColumn), CellType.String);\n' +
             '    cell0.SetCellValue(ValueStr);\n' +
@@ -223,10 +232,14 @@ const fileExtension = computed({
           table#cellTable.table.table-striped
             thead
               tr
-                td.pt-0(colspan="5")
+                td.pt-0(colspan="6")
                   .form-group.row.d-flex.align-items-center
-                    input.form-control.no-validate.me-2(type='text' style="width:40%;" v-model="excelTitle" placeholder="Excel Title")
-                    input.form-control.no-validate.me-2(type='text' style="width:40%;" v-model="sqlColumnName" placeholder="SQL Column Name")
+                    input.form-control.no-validate.me-2(type='text' style="width:26%;" v-model="excelTitle" placeholder="Excel Title")
+                    input.form-control.no-validate.me-2(type='text' style="width:26%;" v-model="sqlColumnName" placeholder="SQL Column Name")
+                    select.form-select.no-validate.me-2(style="width:26%;" v-model="sqlColumnType")
+                      option(value="") Choose Type...
+                      option(value="Text") Text
+                      option(value="Number") Number
                     button.btn.btn-primary.d-flex(type='button' @click="addExcelTitle" style="width:auto")
                       vue-feather(type="plus" stroke="white")
                     .field.invalid-feedback.field-error.text-start Please provide a valid excel cell.
@@ -236,6 +249,7 @@ const fileExtension = computed({
                   input#check-all-col.form-check-input(type="checkbox" :checked="checkedAll" @click="store.checkAll()")
                 th Excel Title
                 th SQL Column Name
+                th Column Type
                 th Actions
             draggable.drag(v-model="excelTitles" tag="tbody" item-key="excelTitle" handle=".handle" :animation="100")
               template(#item="{ element, index }")
@@ -250,6 +264,11 @@ const fileExtension = computed({
                   td(v-if="!element.edit") {{ element.columnName }}
                   td(v-else)
                     input.form-control.me-2(type='text' v-model="element.editColumnName")
+                  td(v-if="!element.edit") {{ element.columnType }}
+                  td(v-else)
+                    select.form-select.me-2(v-model="element.editColumnType")
+                      option(value="Text") Text
+                      option(value="Number") Number
                   td.d-flex.justify-content-center(v-if="!element.edit")
                     button.btn.btn-success.d-flex.me-2(type='button' @click="store.editExcelTitle(index)")
                       vue-feather(type="edit" stroke="white")
