@@ -252,7 +252,7 @@ const saveFile = computed({
 .container
   .row
     .col-12
-      form.row.g-3.needs-validation(novalidate)
+      form.row.g-3.needs-validation-import(novalidate)
         .col-md-4
           label.form-label(for='validationFilePath') Import File Path
           input.form-control#validationFilePath(type='text' v-model="filePath" required)
