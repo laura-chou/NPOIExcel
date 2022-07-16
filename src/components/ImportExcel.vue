@@ -21,23 +21,33 @@ const addExcelTitle = () => {
   } else if (sqlColumnType.value === '') {
     alert('Please select type.')
   } else {
-    exportStore.addExcelTitle({
-      excelTitle: excelTitle.value,
-      columnName: sqlColumnName.value,
-      columnType: sqlColumnType.value,
-      edit: false,
-      editExcelTitle: excelTitle.value,
-      editColumnName: sqlColumnName.value,
-      editColumnType: sqlColumnType.value,
-      checked: true
+    let check = true
+    exportStore.excelTitles.forEach(element => {
+      if (element.excelTitle === excelTitle.value) {
+        check = false
+      }
     })
+    if (check) {
+      exportStore.addExcelTitle({
+        excelTitle: excelTitle.value,
+        columnName: sqlColumnName.value,
+        columnType: sqlColumnType.value,
+        edit: false,
+        editExcelTitle: excelTitle.value,
+        editColumnName: sqlColumnName.value,
+        editColumnType: sqlColumnType.value,
+        checked: true
+      })
+      if (isSubmit.value) {
+        document.getElementsByClassName('field-import')[0].style.display = 'none'
+        document.getElementsByClassName('title-import')[0].style.borderBottom = 'none'
+      }
+    } else {
+      alert('Duplicate excel title.')
+    }
     excelTitle.value = ''
     sqlColumnName.value = ''
     sqlColumnType.value = ''
-    if (isSubmit.value) {
-      document.getElementsByClassName('field-import')[0].style.display = 'none'
-      document.getElementsByClassName('title-import')[0].style.borderBottom = 'none'
-    }
   }
 }
 const deleteExcelTitle = (val) => {
@@ -242,7 +252,7 @@ const saveFile = computed({
 .container
   .row
     .col-12
-      form.row.g-3.needs-validation-import(novalidate)
+      form.row.g-3.needs-validation(novalidate)
         .col-md-4
           label.form-label(for='validationFilePath') Import File Path
           input.form-control#validationFilePath(type='text' v-model="filePath" required)

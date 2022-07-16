@@ -1,6 +1,6 @@
 # NPOIExcel
 
-> #### This is ASP.NET using NPOI library to export and import excel data C# function.
+> #### This is ASP.NET using NPOI library to export and import excel data function.
 
 ## Export
 ![](export1.JPG)

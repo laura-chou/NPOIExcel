@@ -21,23 +21,33 @@ const addExcelTitle = () => {
   } else if (sqlColumnType.value === '') {
     alert('Please select type.')
   } else {
-    store.addExcelTitle({
-      excelTitle: excelTitle.value,
-      columnName: sqlColumnName.value,
-      columnType: sqlColumnType.value,
-      edit: false,
-      editExcelTitle: excelTitle.value,
-      editColumnName: sqlColumnName.value,
-      editColumnType: sqlColumnType.value,
-      checked: true
+    let check = true
+    store.excelTitles.forEach(element => {
+      if (element.excelTitle === excelTitle.value) {
+        check = false
+      }
     })
+    if (check) {
+      store.addExcelTitle({
+        excelTitle: excelTitle.value,
+        columnName: sqlColumnName.value,
+        columnType: sqlColumnType.value,
+        edit: false,
+        editExcelTitle: excelTitle.value,
+        editColumnName: sqlColumnName.value,
+        editColumnType: sqlColumnType.value,
+        checked: true
+      })
+      if (isSubmit.value) {
+        document.getElementsByClassName('field')[0].style.display = 'none'
+        document.getElementsByClassName('title')[0].style.borderBottom = 'none'
+      }
+    } else {
+      alert('Duplicate excel title.')
+    }
     excelTitle.value = ''
     sqlColumnName.value = ''
     sqlColumnType.value = ''
-    if (isSubmit.value) {
-      document.getElementsByClassName('field')[0].style.display = 'none'
-      document.getElementsByClassName('title')[0].style.borderBottom = 'none'
-    }
   }
 }
 const deleteExcelTitle = (val) => {
@@ -106,8 +116,8 @@ const submit = () => {
               '        CellStyle.SetFont(font);\n\n' +
               '        ISheet sheet = book.CreateSheet("' + store.sheetName + '");\n' +
               '        IRow row0 = sheet.CreateRow(0);\n\n'
-    let CellTitle = []
-    let SqlColumn = []
+    const CellTitle = []
+    const SqlColumn = []
     store.excelTitles.forEach(element => {
       if (element.checked) {
         CellTitle.push('"' + element.excelTitle + '"')
