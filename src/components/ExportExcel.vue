@@ -124,14 +124,18 @@ const submit = () => {
         SqlColumn.push('"' + element.columnName + '"')
       }
     })
-    code += '        // excel title\n' +
-            '        string[] TitleArr = { ' + CellTitle.join(', ') + ' };\n' +
-            '        // sql column name\n' +
-            '        string[] SqlDataArr = { ' + SqlColumn.join(', ') + ' };\n\n' +
+    let sqlDict = ''
+    for (const index in SqlColumn) {
+      sqlDict += (index !== '0') ? ',\n' : ''
+      sqlDict += '          { ' + SqlColumn[index] + ', ' + CellTitle[index] + ' }'
+    }
+    code += '        // sql column name and excel title\n' +
+            '        Dictionary<string, string> sqlDict = new Dictionary<string, string>\n        {\n' +
+            sqlDict + '\n        };\n\n' +
             '        // setting cell title\n' +
-            '        for (int i = 0; i < TitleArr.Length; i++)\n        {\n' +
+            '        for (int i = 0; i < sqlDict.Count; i++)\n        {\n' +
             '           // create cell\n' +
-            '           CreateICell(row0, CellStyle, i, TitleArr[i].ToString());\n' +
+            '           CreateICell(row0, CellStyle, i, sqlDict.ElementAt(i).Value);\n' +
             '           // single cell width (10 is your width)\n' +
             '           sheet.SetColumnWidth(i, (int)((10 + 0.72) * 256));\n' +
             '           // auto width\n' +
@@ -147,8 +151,8 @@ const submit = () => {
             '           // row1.Height = 16 * 20;\n' +
             '           // method 3 (16 is your height)\n' +
             '           sheet.DefaultRowHeight = 16 * 20;\n\n' +
-            '           for (int j = 0; j < SqlDataArr.Length; j++)\n           {\n' +
-            '              CreateICell(row1, CellStyle, j, dtData.Rows[i][SqlDataArr[j]].ToString());\n           }\n        }\n    }\n' +
+            '           for (int j = 0; j < sqlDict.Count; j++)\n           {\n' +
+            '              CreateICell(row1, CellStyle, j, dtData.Rows[i][sqlDict.ElementAt(j).Key].ToString());\n           }\n        }\n    }\n' +
             '    else\n    {\n' +
             '       ISheet sheet = book.CreateSheet("' + store.sheetName + '");\n' +
             '       IRow drow0 = sheet.CreateRow(0);\n' +

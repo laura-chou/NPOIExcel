@@ -100,7 +100,7 @@ const submit = () => {
     code += '        // file storage path\n'
     code += '        string serverDir = Server.MapPath("~/' + store.filePath + '");\n'
     code += '        if (!Directory.Exists(serverDir)) Directory.CreateDirectory(serverDir);\n\n'
-    code += '        // rename if the file name is duplicate\n'
+    code += '        // if the file name is duplicate then rename it\n'
     code += '        string serverFilePath = Path.Combine(serverDir, fileName);\n'
     code += '        string fileNameOnly = Path.GetFileNameWithoutExtension(fileName);\n'
     code += '        int count = 1;\n'
@@ -126,8 +126,9 @@ const submit = () => {
     code += '  return returnMsg;\n}\n'
     code += 'private string GetCellData (ISheet sheet)\n{\n'
     code += '  IRow rowTitle = (IRow)sheet.GetRow(0);\n'
-    code += '  string message = "";\n'
-    code += '  string errorNum = "";\n'
+    code += '  StringBuilder message = new StringBuilder();\n'
+    code += '  StringBuilder errorNum = new StringBuilder();\n'
+    code += '  List<DataInfo> dataList = new List<DataInfo>\n  {\n'
     const CellTitle = []
     const SqlColumn = []
     const ColumnType = []
@@ -138,7 +139,7 @@ const submit = () => {
         ColumnType.push('' + element.columnType + '')
       }
     })
-    code += '  string[] title = {' + CellTitle.join(', ') + '};\n'
+
     const ExcelNumber = []
     let count = CellTitle.length
     let runTime = 1
@@ -171,58 +172,52 @@ const submit = () => {
         }
       }
     }
-
-    code += '  string[] cellNumber = {' + ExcelNumber.join(', ') + '};\n\n'
+    for (const key in ExcelNumber) {
+      if (key !== '0') code += ',\n'
+      code += '    new DataInfo\n    {\n'
+      code += '      ExcelNameBox = ' + ExcelNumber[key] + ',\n'
+      code += '      ExcelTitle = ' + CellTitle[key] + ',\n'
+      code += '      ExcelCellValue = ""\n    }'
+    }
+    code += '\n  };\n\n'
     code += '  // confirm the number of titles\n'
-    code += '  if (rowTitle.LastCellNum != title.Length)\n  {\n'
+    code += '  if (rowTitle.LastCellNum != dataList.Count)\n  {\n'
     code += '    return "Wrong number of title fields.";\n  }\n  else\n  {\n'
     code += '    // confirm title\n'
-    code += '    for (int i = 0; i < title.Length; i++)\n    {\n'
-    code += '      if (rowTitle.GetCell(i).ToString().Trim() != title[i])\n      {\n'
-    code += '        message += (message != "" ? "、" : "") + cellNumber[i];\n      }\n    }\n'
-    code += '    if (message != "") return message + " wrong title";\n  }\n\n'
-    code += '  // create DataTable\n'
-    code += '  DataTable dt = new DataTable();\n'
-    code += '  string[] sqlColumn = {' + SqlColumn.join(', ') + '};\n'
-    code += '  for (int i = 0; i < sqlColumn.Length; i++)\n  {\n'
-    code += '    DataColumn dc = new DataColumn();\n'
-    code += '    dc.DataType = Type.GetType("System.String");\n'
-    code += '    dc.ColumnName = sqlColumn[i];\n'
-    code += '    dt.Columns.Add(dc);\n  }\n\n'
-    code += '  // read  the cell value and add it to the DataTable\n'
+    code += '    for (int i = 0; i < dataList.Count; i++)\n    {\n'
+    code += '      if (rowTitle.GetCell(i).ToString().Trim() != dataList[i].ExcelTitle)\n      {\n'
+    code += '        message.Append((!message.ToString().Equals("") ? "、" : "") + dataList[i].ExcelNameBox);\n      }\n    }\n'
+    code += '    if (!message.ToString().Equals("")) return message + " wrong title.";\n  }\n\n'
+    code += '  // read the cell value\n'
     code += '  for (int i = 1; i <= sheet.LastRowNum; i++)\n  {\n'
     code += '      IRow row = sheet.GetRow(i);\n'
-    code += '      DataRow dr = dt.NewRow();\n'
-    code += '      int itemNumber = i + 1;\n'
-    code += '\n      for (int j = 0; j < title.Length; j++)\n      {\n'
-    code += '          string value = row.GetCell(j).ToString().Trim();\n'
-    code += '          // you can confirm or change the values,and then add them to the DataTable here\n'
-    code += '          switch (j)\n          {\n'
-    ColumnType.forEach((element, index) => {
-      if (element !== 'Text') {
-        code += '            case ' + index + ':\n'
-      }
-    })
-    if (ColumnType.includes('Number')) {
-      code += '              if (!value.All(char.IsDigit))\n              {\n'
-      code += '                errorNum += ((errorNum == "") ? "" : "、") + cellNumber[j].Replace("1", "") + itemNumber.ToString();\n              }\n              else\n              {\n'
-      code += '                dr[sqlColumn[j]] = value;\n              }\n'
-      code += '              break;\n'
+    code += '      int itemNumber = i + 1;\n\n'
+    code += '      int j = 0;\n'
+    const NumberCells = []
+    for (const key in ColumnType) {
+      if (ColumnType[key] === 'Number') NumberCells.push(key)
     }
-    code += '            default:\n'
-    code += '              dr[sqlColumn[j]] = value;\n'
-    code += '              break;\n'
-    code += '          }\n      }\n\n'
-    code += '      dt.Rows.Add(dr);\n  }\n\n'
-    code += '  if (errorNum != "")\n  {\n'
-    code += '    errorNum = "Cell " + errorNum + ".Please input the number.";\n'
-    code += '    message += errorNum;\n  }\n\n'
-    code += '  if (message == "")\n  {\n'
-    code += '    foreach (DataRow dr in dt.Rows)\n    {\n'
-    code += '      // you can read the data and save it in the database here\n'
-    code += '      // for example: dr[' + SqlColumn[0] + '].ToString();\n    }\n  }\n\n'
-    code += '  return message;\n'
-    code += '}'
+    code += '      int[] typeNumberCells = { ' + NumberCells.join(', ') + ' };\n'
+    code += '      foreach (var col in dataList)\n      {\n'
+    code += '          string value = row.GetCell(j).ToString().Trim();\n'
+    code += '          // read the cell value and update it to dataList ExcelCellValue value\n'
+    code += '          if (typeNumberCells.Contains(j))\n          {\n'
+    code += '            if (!value.All(char.IsDigit))\n            {\n'
+    code += '              errorNum.Append((errorNum.ToString().Equals("") ? "" : "、") + dataList[j].ExcelNameBox.Replace("1", "") + itemNumber.ToString());\n            }\n'
+    code += '          }\n\n          col.ExcelCellValue = value;\n\n'
+    code += '          j++;\n      }'
+    code += '\n  }\n\n'
+    code += '  if (!errorNum.Length.Equals(0))\n  {\n'
+    code += '    message.Append("Cell " + errorNum.ToString() + ". Please enter a number.");\n  }\n\n'
+    code += '  if (message.Length.Equals(0))\n  {\n'
+    code += '    // you can get excel data in DataInfo ExcelCellValue\n'
+    code += '    // for example: dataList[0].ExcelCellValue\n  }\n\n'
+    code += '  return message.ToString();\n'
+    code += '}\n\n'
+    code += 'internal class DataInfo\n{\n'
+    code += '  public string ExcelNameBox { get; set; }\n'
+    code += '  public string ExcelTitle { get; set; }\n'
+    code += '  public string ExcelCellValue { get; set; }\n}'
     store.importCode = code
   }
 }
